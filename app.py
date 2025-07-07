@@ -16,18 +16,22 @@ class HumanAgent:
         self.adherence = adherence / 100
         self.aggression = max(0.1, 1.0 - self.adherence)
         self.education = 0.3 + 0.5 * self.adherence
-        self.happiness = 0.5 + 0.4 * self.adherence
+        self.happiness = min(1.0, max(0.0, 0.5 + 0.4 * self.adherence))
         self.alive = True
 
     def interact(self, other):
-        if not other.alive or not self.alive:
+        if not self.alive or not other.alive:
             return
+
         if self.aggression > 0.8 and random.random() < 0.02:
             other.alive = False
             self.happiness -= 0.05
         else:
-            self.happiness += 0.03
-            self.education += 0.01
+            self.happiness += 0.02 * self.adherence
+            self.education += 0.01 * self.adherence
+
+        self.happiness = min(1.0, max(0.0, self.happiness))
+        self.education = min(1.0, max(0.0, self.education))
 
 # Run simulation
 if st.button("Run Simulation"):
