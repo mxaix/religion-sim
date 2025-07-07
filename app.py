@@ -23,7 +23,7 @@ class HumanAgent:
         if not self.alive or not other.alive:
             return
 
-        if self.aggression > 0.8 and random.random() < 0.02:
+        if random.random() < self.aggression * 0.05:
             other.alive = False
             self.happiness -= 0.05
         else:
@@ -32,7 +32,6 @@ class HumanAgent:
 
         self.happiness = min(1.0, max(0.0, self.happiness))
         self.education = min(1.0, max(0.0, self.education))
-
 # Run simulation
 if st.button("Run Simulation"):
     agents = [HumanAgent(religion, adherence) for _ in range(N)]
