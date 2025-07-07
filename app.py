@@ -1,63 +1,61 @@
 import streamlit as st
+import matplotlib.pyplot as plt
 import random
-import pandas as pd
+
+# UI: Title and religion choice
+st.title("🌍 Global Religion Simulation")
+religion = st.selectbox("Choose a religion to simulate:", ["Islam", "Christianity", "Judaism", "Buddhism", "Hinduism", "Atheism"])
+adherence = st.slider("Religious adherence (%):", min_value=0, max_value=100, value=80)
+N = st.slider("Population Size:", min_value=100, max_value=10000, value=1000)
+steps = st.slider("Simulation Steps:", min_value=10, max_value=200, value=100)
 
 # Agent class
 class HumanAgent:
-    def __init__(self, religion):
+    def __init__(self, religion, adherence):
         self.religion = religion
-        self.aggression = random.uniform(0, 1)
-        self.education = random.uniform(0.3, 0.7)
-        self.happiness = 1.0
+        self.adherence = adherence / 100
+        self.aggression = max(0.1, 1.0 - self.adherence)
+        self.education = 0.3 + 0.5 * self.adherence
+        self.happiness = 0.5 + 0.4 * self.adherence
         self.alive = True
 
     def interact(self, other):
-        if not (self.alive and other.alive) or self is other:
+        if not other.alive or not self.alive:
             return
-        if self.aggression > 0.7 and random.random() < self.aggression:
+        if self.aggression > 0.8 and random.random() < 0.02:
             other.alive = False
-            self.happiness -= 0.2
+            self.happiness -= 0.05
         else:
-            self.happiness += 0.02
+            self.happiness += 0.03
             self.education += 0.01
 
-    def step(self):
-        if not self.alive:
-            return
-        self.education = min(self.education + 0.01, 1.0)
-        self.happiness = max(self.happiness - 0.01, 0.0)
-
-def run_simulation(N, religion, steps):
-    agents = [HumanAgent(religion) for _ in range(N)]
-    records = []
-    for _ in range(steps):
-        alive_agents = [a for a in agents if a.alive]
-        for agent in alive_agents:
-            partner = random.choice(alive_agents)
-            agent.interact(partner)
-            agent.step()
-
-        alive = sum(a.alive for a in agents)
-        avg_edu = sum(a.education for a in agents if a.alive) / (alive or 1)
-        avg_happy = sum(a.happiness for a in agents if a.alive) / (alive or 1)
-
-        records.append({"Alive": alive, "Avg Education": avg_edu, "Avg Happiness": avg_happy})
-
-    return pd.DataFrame(records)
-
-# Streamlit UI
-st.set_page_config(page_title="Global Religion Sim", layout="centered")
-st.title("🌍 Global Religion Simulation")
-
-religion = st.selectbox("Choose a religion for all agents:", [
-    "Islam", "Christianity", "Judaism", "Buddhism", "Hinduism", "Atheism"
-])
-population = st.slider("Population size:", min_value=100, max_value=5000, value=1000, step=100)
-steps = st.slider("Number of simulation steps:", min_value=10, max_value=200, value=100, step=10)
-
+# Run simulation
 if st.button("Run Simulation"):
-    with st.spinner("Running..."):
-        df = run_simulation(population, religion, steps)
-    st.subheader("📈 Results")
-    st.line_chart(df)
-    st.success("Simulation complete!")
+    agents = [HumanAgent(religion, adherence) for _ in range(N)]
+
+    alive_over_time = []
+    avg_edu = []
+    avg_happy = []
+
+    for _ in range(steps):
+        for a in agents:
+            if a.alive:
+                other = random.choice(agents)
+                a.interact(other)
+
+        alive = sum(1 for a in agents if a.alive)
+        edu = sum(a.education for a in agents if a.alive) / alive if alive > 0 else 0
+        happy = sum(a.happiness for a in agents if a.alive) / alive if alive > 0 else 0
+
+        alive_over_time.append(alive)
+        avg_edu.append(edu)
+        avg_happy.append(happy)
+
+    # Plot results
+    st.subheader("📊 Results")
+    fig, ax = plt.subplots()
+    ax.plot(alive_over_time, label="Alive", color='blue')
+    ax.plot(avg_edu, label="Avg Education", color='skyblue')
+    ax.plot(avg_happy, label="Avg Happiness", color='red')
+    ax.legend()
+    st.pyplot(fig)
